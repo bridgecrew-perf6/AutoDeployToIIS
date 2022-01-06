@@ -1,0 +1,38 @@
+name: "Build and Deploy"
+on:
+  workflow_dispatch:
+    branches:
+      - master
+env:
+  WEBAPP_NAME: 'IISAutoDeploy'
+  DOTNET_VERSION: '5.0.x'           # set this to the dot net version to use
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup .NET Core 
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+          
+      - name: Install dependencies
+        working-directory: 'IISAutoDeploy'
+        run: dotnet restore
+        
+      - name: Build
+        working-directory: 'IISAutoDeploy'
+        run: dotnet build --configuration Release --no-restore
+        
+      - name: Publish
+        working-directory: 'IISAutoDeploy'
+        run: dotnet publish --configuration Release --output 'dotnetcorewebapp'
+        
+      - name: Simply Web Deploy
+        uses: RasmusBuchholdt/simply-web-deploy@2.0.0
+        with:
+          website-name: ${{ secrets.WEBSITE_NAME }}
+          server-computer-name: ${{ secrets.SERVER_COMPUTER_NAME }}
+          server-username: ${{ secrets.SERVER_USERNAME }}
+          server-password: ${{ secrets.SERVER_PASSWORD }}
+          source-path: '/IISAutoDeploy/dotnetcorewebapp/'
