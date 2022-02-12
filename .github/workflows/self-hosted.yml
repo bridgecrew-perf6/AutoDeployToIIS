@@ -6,8 +6,9 @@ on:
       - master
 
 env:
-  WORKING_DIRECTORY: 'IISAutoDeploy'
-  DOTNET_VERSION: '5.0.x'           # set this to the dot net version to use
+  GITHUB_WORKING_DIRECTORY: ''             # If you have root folder in GitHub code set otherwise leave it blank
+  IIS_WEBAPP_PATH: 'C:\HostingSpaces\admin\AutoDeployTest'          
+  DOTNET_VERSION: '6.0.x'           # set this to the dot net version to use
 
 jobs:
   build:
@@ -22,22 +23,22 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Install dependencies
-        working-directory: ${{ env.WORKING_DIRECTORY }}
+        working-directory: ${{ env.GITHUB_WORKING_DIRECTORY }}
         run: dotnet restore
 
       - name: Build
-        working-directory: ${{ env.WORKING_DIRECTORY }}
+        working-directory: ${{ env.GITHUB_WORKING_DIRECTORY }}
         run: dotnet build --configuration Release --no-restore 
 
       - name: Publish
-        working-directory: ${{ env.WORKING_DIRECTORY }}
+        working-directory: ${{ env.GITHUB_WORKING_DIRECTORY }}
         run: dotnet publish --configuration Release --output 'dotnetcorewebapp'
 
       - name: Upload a Build Artifact
         uses: actions/upload-artifact@v2.2.1
         with:
           name: application
-          path: '${{ env.WORKING_DIRECTORY }}/dotnetcorewebapp'
+          path: '${{ env.GITHUB_WORKING_DIRECTORY }}/dotnetcorewebapp'
 
   deploy:
     needs: build
@@ -45,16 +46,16 @@ jobs:
 
     steps:
     - name: Take application offline
-      run: New-Item -Type File -Name app_offline.htm -Path C:\HostingSpaces\admin\AutoDeployTest -Force
+      run: New-Item -Type File -Name app_offline.htm -Path ${{ env.IIS_WEBAPP_PATH }} -Force
 
-    - name: Set application offline
-      run: Set-Content C:\HostingSpaces\admin\AutoDeployTest\app_offline.htm 'Under Construction'
+    - name: Set Offline HTML file
+      run: Set-Content ${{ env.IIS_WEBAPP_PATH }}\app_offline.htm 'Site Under Maintance'
 
     - name: Download new binaries over the top of the app
       uses: actions/download-artifact@v2
       with:
         name: application
-        path: C:\HostingSpaces\admin\AutoDeployTest
+        path: ${{ env.IIS_WEBAPP_PATH }}
 
     - name: Bring the app back online
-      run: Remove-Item C:\HostingSpaces\admin\AutoDeployTest\app_offline.htm
+      run: Remove-Item ${{ env.IIS_WEBAPP_PATH }}\app_offline.htm
